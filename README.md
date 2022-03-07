@@ -64,9 +64,66 @@ module "records" {
 }
 ```
 
+Private Zones need a primary VPC at all times:
+
+```hcl
+module "zones" {
+  source  = "terraform-aws-modules/route53/aws//modules/zones"
+  version = "~> 2.6"
+
+  zones = {
+    "example.com" = {
+      comment = "examples.com (production)"
+      primary_vpc = { vpc_id = "vpc-12345678" }
+      tags = {
+        env = "production"
+      }
+    }
+  }
+
+  tags = {
+    ManagedBy = "Terraform"
+  }
+}
+```
+
+Cross-Account Private Zone:
+In this case, VPCs in the same account are associated to the zone and VPCs in other accounts are authorized but require a [`aws_route53_zone_association`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/route53_zone_association) resource
+
+```hcl
+module "zones" {
+  source  = "terraform-aws-modules/route53/aws//modules/zones"
+  version = "~> 2.6"
+
+  zones = {
+    "example.com" = {
+      comment = "examples.com (production)"
+      primary_vpc = { vpc_id = "vpc-12345678" }
+      additional_local_vpcs = [
+        { vpc_id = "vpc-23456789" },
+        { vpc_id = "vpc-34567890" }
+      ]
+      crossaccount_vpcs = [
+        { vpc_id = "vpc-45678901" }
+      ]
+      tags = {
+        env = "production"
+      }
+    }
+  }
+
+  tags = {
+    ManagedBy = "Terraform"
+  }
+}
+```
+
+Note that changes to the primary VPC are ignored to protect against persist differences
+
 ## Examples
 
 - [Complete Route53 zones and records example](https://github.com/terraform-aws-modules/terraform-aws-route53/tree/master/examples/complete) which shows how to create Route53 records of various types like S3 bucket and CloudFront distribution.
+- [Cross-Account example](https://github.com/terraform-aws-modules/terraform-aws-route53/tree/master/examples/cross-account) which shows how to create Route53 zones that get attached to multiple VPC in the same and other accounts.
 
 <!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
